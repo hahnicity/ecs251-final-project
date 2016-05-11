@@ -16,7 +16,6 @@ def process_features(df):
     del df['maxP']  # This is a dupe of PIP
     # Experimental
     del df['iTime']
-    #del df['eTime']
     del df['TVi']
     del df['TVe']
     del df['TVe:TVi ratio']
@@ -29,13 +28,15 @@ def process_features(df):
     del df['x02']
     del df['TVi2']
     del df['TVe2']
-    #del df['Maw']
-    #del df['I:E ratio']
-    #del df['ipAUC']
-    #del df['epAUC']
-    #del df['PIP']
-    #del df['PEEP']
-    #del df['inst_RR']
+    # Undo below
+    del df['eTime']
+    del df['Maw']
+    del df['I:E ratio']
+    del df['ipAUC']
+    del df['epAUC']
+    del df['PIP']
+    del df['PEEP']
+    del df['inst_RR']
     df = df.replace([inf, -inf], nan).dropna()
     return df
 
