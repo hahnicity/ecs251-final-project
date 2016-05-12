@@ -15,7 +15,6 @@ def process_features(df):
     del df['IEnd']
     del df['maxP']  # This is a dupe of PIP
     # Experimental
-    del df['iTime']
     del df['TVi']
     del df['TVe']
     del df['TVe:TVi ratio']
@@ -28,15 +27,15 @@ def process_features(df):
     del df['x02']
     del df['TVi2']
     del df['TVe2']
-    # Undo below
-    del df['eTime']
-    del df['Maw']
-    del df['I:E ratio']
-    del df['ipAUC']
-    del df['epAUC']
-    del df['PIP']
-    del df['PEEP']
-    del df['inst_RR']
+    del df['iTime']
+    #del df['eTime']
+    #del df['Maw']
+    #del df['I:E ratio']
+    #del df['ipAUC']
+    #del df['epAUC']
+    #del df['PIP']
+    #del df['PEEP']
+    #del df['inst_RR']
     df = df.replace([inf, -inf], nan).dropna()
     return df
 
@@ -69,23 +68,22 @@ def collate_from_breath_meta_to_list(cohort):
     return data
 
 
-def collate_from_breath_meta_to_data_frame(cohort):
+def collate_from_breath_meta_to_data_frame(cohort, breaths_to_stack):
     cohort_files = get_cohort_files(cohort)
     df = process_features(read_csv(cohort_files[0]))
-    rolling = create_rolling_frame(df)
+    rolling = create_rolling_frame(df, breaths_to_stack)
     for f in cohort_files[1:]:
         new = process_features(read_csv(f))
         if len(new.index) == 0:
             continue
-        new = create_rolling_frame(new)
+        new = create_rolling_frame(new, breaths_to_stack)
         rolling = append(rolling, new, axis=0)
     return DataFrame(rolling)
 
 
-def create_rolling_frame(df):
+def create_rolling_frame(df, breaths_in_frame):
     matrix = df.as_matrix()
     # I imagine we can make this configurable
-    breaths_in_frame = 20
     rolling = empty((0, len(matrix[0]) * breaths_in_frame), float)
     row = matrix[0]
     for i, _ in enumerate(df.index[:-1]):
@@ -96,11 +94,11 @@ def create_rolling_frame(df):
     return rolling
 
 
-def collate_all_from_breath_meta_to_data_frame():
-    ards = collate_from_breath_meta_to_data_frame("ardscohort")
+def collate_all_from_breath_meta_to_data_frame(breaths_to_stack):
+    ards = collate_from_breath_meta_to_data_frame("ardscohort", breaths_to_stack)
     y = Series(1, index=ards.index)
     ards['y'] = y
-    control = collate_from_breath_meta_to_data_frame("controlcohort")
+    control = collate_from_breath_meta_to_data_frame("controlcohort", breaths_to_stack)
     y = Series(0, index=control.index)
     control['y'] = y
     return ards.append(control, ignore_index=True)
