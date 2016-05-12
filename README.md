@@ -18,7 +18,7 @@ Create a new virtualenvironment and activate
 
 Install requirements
 
-    sudo pip install -r requirements.txt
+    pip install -r requirements.txt
 
 #Running
 
