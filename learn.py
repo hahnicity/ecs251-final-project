@@ -1,7 +1,8 @@
 from numpy import inf, nan
 from sklearn.cross_validation import train_test_split
-from sklearn.linear_model import LogisticRegression
+#from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import scale
+from sklearn.svm import SVC
 
 from collate import collate_all_from_breath_meta_to_data_frame
 
@@ -18,7 +19,7 @@ def main():
     df = collate_all_from_breath_meta_to_data_frame(20)
     x, y = preprocess_x_y(df)
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.25, random_state=42)
-    clf = LogisticRegression()
+    clf = SVC()
     clf = clf.fit(x_train, y_train)
     # First try .6335
     # With scaling: .6559.
@@ -48,6 +49,7 @@ def main():
     # Remove iTime with 25 stacked breaths and all data: .704
     # Put iTime back in with 20 stacked breaths and all data: .7119
     # Remove iTime with 20 stacked breaths and all data: .7139
+    # Use SVM instead of linear regression: .84886
     score = clf.score(x_test, y_test)
     print(score)
 
