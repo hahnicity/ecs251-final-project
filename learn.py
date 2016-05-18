@@ -65,7 +65,8 @@ def with_spark(x_train, x_test, y_train, y_test):
     param_grid = {"C": [1, 10]}
     gs = SparkGridSearchCV(sc, SVC(cache_size=CACHE_SIZE), param_grid=param_grid)
     res = gs.fit(x_train, y_train)
-    # XXX TODO
+    print(res.best_score_)
+    print(res.best_params_)
 
 
 def main():
