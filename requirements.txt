@@ -3,4 +3,5 @@ numpy
 ipython
 scikit-learn
 scipy
+spark-sklearn
 flintrock
