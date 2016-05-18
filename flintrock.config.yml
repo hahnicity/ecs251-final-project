@@ -5,7 +5,7 @@ services:
     version: 1.6.1
 
 launch:
-  num-slaves: 5
+  num-slaves: 2
 
 providers:
   ec2:
@@ -13,5 +13,5 @@ providers:
     identity-file: /Users/greg/.ssh/gr-pair-gondolin.pem
     instance-type: t2.micro
     region: us-west-1
-    ami: ami-d1315fb1
+    ami: ami-6e84fa0e
     user: ec2-user
