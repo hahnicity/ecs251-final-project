@@ -11,7 +11,7 @@ providers:
   ec2:
     key-name: gr-pair-gondolin
     identity-file: /Users/greg/.ssh/gr-pair-gondolin.pem
-    instance-type: t2.micro
+    #instance-type: t2.micro
     region: us-west-1
     ami: ami-6e84fa0e
     user: ec2-user
