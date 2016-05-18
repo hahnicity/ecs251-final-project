@@ -28,6 +28,7 @@
 # Remove iTime with 20 stacked breaths and all data: .7139
 # Use SVM instead of linear regression: .84886
 from argparse import ArgumentParser
+from multiprocessing import cpu_count
 
 from numpy import inf, nan
 from sklearn.cross_validation import train_test_split
@@ -37,7 +38,7 @@ from sklearn.svm import SVC
 
 from collate import collate_all_from_breath_meta_to_data_frame
 
-CACHE_SIZE = 5000
+CACHE_SIZE = 2000
 
 
 def preprocess_x_y(df):
@@ -50,11 +51,14 @@ def preprocess_x_y(df):
 def non_spark(x_train, x_test, y_train, y_test):
     # TODO perform PCA on whole thing.
     clf = SVC(cache_size=CACHE_SIZE)
-    param_grid = {"C": list(range(1, 11))}
-    gs = GridSearchCV(clf, param_grid)
+    param_grid = {"C": [10, 50, 100], "kernel": ["linear", "rbf"]}
+    # Leave at least one core available
+    gs = GridSearchCV(clf, param_grid, n_jobs=cpu_count() - 1)
     res = gs.fit(x_train, y_train)
     print(res.best_score_)
     print(res.best_params_)
+    print("Perform scoring on test set")
+    print(res.score(x_test, y_test))
 
 
 def with_spark(x_train, x_test, y_train, y_test):
@@ -62,11 +66,13 @@ def with_spark(x_train, x_test, y_train, y_test):
     from spark_sklearn import GridSearchCV as SparkGridSearchCV
     conf = SparkConf().setMaster("local").setAppName("ecs251")
     sc = SparkContext(conf=conf)
-    param_grid = {"C": [1, 10]}
-    gs = SparkGridSearchCV(sc, SVC(cache_size=CACHE_SIZE), param_grid=param_grid)
+    param_grid = {"C": [10, 50, 100], "kernel": ["linear", "rbf"]}
+    gs = SparkGridSearchCV(sc, SVC(cache_size=CACHE_SIZE, ), param_grid=param_grid)
     res = gs.fit(x_train, y_train)
     print(res.best_score_)
     print(res.best_params_)
+    print("Perform scoring on test set")
+    print(res.score(x_test, y_test))
 
 
 def main():
