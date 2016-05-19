@@ -27,6 +27,8 @@
 # Put iTime back in with 20 stacked breaths and all data: .7119
 # Remove iTime with 20 stacked breaths and all data: .7139
 # Use SVM instead of linear regression: .84886
+# Use SVM with C=10 .862928
+# Use SVM with C=50 .87754
 from argparse import ArgumentParser
 from multiprocessing import cpu_count
 
@@ -50,15 +52,14 @@ def preprocess_x_y(df):
 
 def non_spark(x_train, x_test, y_train, y_test):
     # TODO perform PCA on whole thing.
-    clf = SVC(cache_size=CACHE_SIZE)
-    param_grid = {"C": [10, 50, 100], "kernel": ["linear", "rbf"]}
-    # Leave at least one core available
-    gs = GridSearchCV(clf, param_grid, n_jobs=cpu_count() - 1)
-    res = gs.fit(x_train, y_train)
-    print(res.best_score_)
-    print(res.best_params_)
-    print("Perform scoring on test set")
-    print(res.score(x_test, y_test))
+    param_grid = {"C": [50], "kernel": ["rbf"], "gamma": [1.0, .1, .01, .001, .0001, .00001, "auto"]}
+    for c in param_grid["C"]:
+        for kernel in param_grid["kernel"]:
+            for gamma in param_grid["gamma"]:
+                clf = SVC(cache_size=CACHE_SIZE, kernel=kernel, C=c, gamma=gamma)
+                clf.fit(x_train, y_train)
+                print(c, kernel)
+                print(clf.score(x_test, y_test))
 
 
 def with_spark(x_train, x_test, y_train, y_test):
@@ -66,7 +67,7 @@ def with_spark(x_train, x_test, y_train, y_test):
     from spark_sklearn import GridSearchCV as SparkGridSearchCV
     conf = SparkConf().setMaster("local").setAppName("ecs251")
     sc = SparkContext(conf=conf)
-    param_grid = {"C": [10, 50, 100], "kernel": ["linear", "rbf"]}
+    param_grid = {"C": [50], "kernel": ["rbf"]}
     gs = SparkGridSearchCV(sc, SVC(cache_size=CACHE_SIZE, ), param_grid=param_grid)
     res = gs.fit(x_train, y_train)
     print(res.best_score_)
