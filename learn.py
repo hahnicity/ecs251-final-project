@@ -16,8 +16,6 @@
 # 20 stacked rows with 10000 training rows and 2500 test rows: .7104
 # 30 stacked rows with 10000 training rows and 2500 test rows: .6984
 # 40 stacked rows with 10000 training rows and 2500 test rows: .6932
-# 50 stacked rows with 10000 training rows and 2500 test rows: .6864
-# 10 stacked rows with 10000 training rows and 2500 test rows: .7008
 # 15 stacked rows with 10000 training rows and 2500 test rows: .704
 # 18 stacked rows with 10000 training rows and 2500 test rows: .6776
 # 22 stacked rows with 10000 training rows and 2500 test rows: .7096
@@ -29,10 +27,14 @@
 # Use SVM instead of linear regression: .84886
 # Use SVM with C=10 .862928
 # Use SVM with C=50 .87754
+# Use SVM with C=50 gamma=0.01 .8886
+# Use SVM with C=50 gamma=0.02 .89335
 from argparse import ArgumentParser
+import csv
 from multiprocessing import cpu_count
 
-from numpy import inf, nan
+from numpy import append, inf, nan
+from pandas import DataFrame
 from sklearn.cross_validation import train_test_split
 from sklearn.grid_search import GridSearchCV
 from sklearn.preprocessing import scale
@@ -46,23 +48,39 @@ CACHE_SIZE = 2000
 def preprocess_x_y(df):
     y = df['y']
     del df['y']
+    filenames = df['filename']
+    del df['filename']
+    start_vent_bns = df['start_vent_bn']
+    del df['start_vent_bn']
+    # Need to sleep for a second because of some race condition
+    import time; time.sleep(1)
+    tmp_zip = zip(list(df.index), filenames, start_vent_bns)
+    vents_and_files = {idx: [f, bn] for idx, f, bn in tmp_zip}
     df = scale(df)
-    return df, y
+    return DataFrame(df), DataFrame(y), vents_and_files
 
 
-def non_spark(x_train, x_test, y_train, y_test):
+def non_spark(x_train, x_test, y_train, y_test, vents_and_files):
     # TODO perform PCA on whole thing.
-    param_grid = {"C": [50], "kernel": ["rbf"], "gamma": [1.0, .1, .01, .001, .0001, .00001, "auto"]}
+    param_grid = {"C": [50], "kernel": ["rbf"], "gamma": [.02]}
     for c in param_grid["C"]:
         for kernel in param_grid["kernel"]:
             for gamma in param_grid["gamma"]:
                 clf = SVC(cache_size=CACHE_SIZE, kernel=kernel, C=c, gamma=gamma)
                 clf.fit(x_train, y_train)
-                print(c, kernel)
+                print(kernel, c, gamma)
                 print(clf.score(x_test, y_test))
+                predictions = clf.predict(x_test)
+                error = abs(y_test['y'] - predictions)
+                failure_idx = error[error == 2]
+                with open("failure.test", "w") as f:
+                    writer = csv.writer(f)
+                    for idx in failure_idx.index:
+                        actual = y_test.loc[idx].values
+                        writer.writerow(pt_data + list(actual))
 
 
-def with_spark(x_train, x_test, y_train, y_test):
+def with_spark(x_train, x_test, y_train, y_test, vents_and_files):
     from pyspark import SparkConf, SparkContext
     from spark_sklearn import GridSearchCV as SparkGridSearchCV
     conf = SparkConf().setMaster("local").setAppName("ecs251")
@@ -81,12 +99,12 @@ def main():
     parser.add_argument("--with-spark", action="store_true", default=False)
     args = parser.parse_args()
     df = collate_all_from_breath_meta_to_data_frame(20)
-    x, y = preprocess_x_y(df)
+    x, y, vents_and_files = preprocess_x_y(df)
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=.25, random_state=42)
     if args.with_spark:
-        with_spark(x_train, x_test, y_train, y_test)
+        with_spark(x_train, x_test, y_train, y_test, vents_and_files)
     else:
-        non_spark(x_train, x_test, y_train, y_test)
+        non_spark(x_train, x_test, y_train, y_test, vents_and_files)
 
 
 if __name__ == "__main__":

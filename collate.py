@@ -9,7 +9,7 @@ from pandas import DataFrame, read_csv, Series
 def process_features(df):
     # Pretty sure these features won't matter
     del df['BN']
-    del df['ventBN']
+    #del df['ventBN']
     del df[' ']
     del df['BS']
     del df['IEnd']
@@ -72,25 +72,38 @@ def collate_from_breath_meta_to_data_frame(cohort, breaths_to_stack):
     cohort_files = get_cohort_files(cohort)
     df = process_features(read_csv(cohort_files[0]))
     rolling = create_rolling_frame(df, breaths_to_stack)
+    file_array = [cohort_files[0]] * len(rolling)
     for f in cohort_files[1:]:
         new = process_features(read_csv(f))
         if len(new.index) == 0:
             continue
         new = create_rolling_frame(new, breaths_to_stack)
         rolling = append(rolling, new, axis=0)
-    return DataFrame(rolling)
+        file_array.extend([f] * len(new))
+    df = DataFrame(rolling)
+    df['filename'] = file_array
+    df = df.rename(columns={180: 'start_vent_bn'})
+    return df
 
 
 def create_rolling_frame(df, breaths_in_frame):
     matrix = df.as_matrix()
-    # I imagine we can make this configurable
-    rolling = empty((0, len(matrix[0]) * breaths_in_frame), float)
-    row = matrix[0]
+    # The +1 is for the start bn
+    rolling = empty((0, ((len(matrix[0]) - 1) * breaths_in_frame) + 1), float)
+    # The [1:] means cut off the vent bn
+    row = matrix[0][1:]
+    start_bn = 0
     for i, _ in enumerate(df.index[:-1]):
+        # Ensure we can attach initial vent bn without interfering with our model
+        if start_bn == 0:
+            start_bn = int(matrix[i][0])
         if (i + 1) % breaths_in_frame == 0:
+            row = append(row, [start_bn])
             rolling = append(rolling, [row], axis=0)
             row = array([])
-        row = append(row, matrix[i + 1])
+            start_bn = 0
+        # The [1:] means cut off the vent bn
+        row = append(row, matrix[i + 1][1:])
     return rolling
 
 
@@ -99,6 +112,6 @@ def collate_all_from_breath_meta_to_data_frame(breaths_to_stack):
     y = Series(1, index=ards.index)
     ards['y'] = y
     control = collate_from_breath_meta_to_data_frame("controlcohort", breaths_to_stack)
-    y = Series(0, index=control.index)
+    y = Series(-1, index=control.index)
     control['y'] = y
     return ards.append(control, ignore_index=True)

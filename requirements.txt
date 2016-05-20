@@ -5,3 +5,4 @@ scikit-learn
 scipy
 spark-sklearn
 flintrock
+twilio
