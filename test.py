@@ -12,7 +12,7 @@ import time
 import matplotlib.pyplot as plt
 
 #------------------------------------------------------
-from fitgaus import fitgausdist
+#from fitgaus import fitgausdist
 #----------------------------------------
 
 def normlize(vec):
@@ -29,7 +29,7 @@ def get_cohort_files(cohort, keywords):
     """
     if cohort not in ["ardscohort", "controlcohort"]:
         raise Exception("Input must either be ardscohort or controlcohort")
-    path = '/Users/shasha/Documents/courses/ECS251/project_final/data/' + cohort
+    path = dirname(__file__) + cohort
     #dirs = os.listdir(path)
     dirs = glob(path+'/0*')
     data = []
@@ -123,15 +123,15 @@ print(clf.predict(datatest))
     2. some files missing features
     3. some files too short, less than 1000 breath
     4. not using the min_f feature... the important one
-    
-    
-    1. find out the collinear variables -- rank 70 of matrix 76, 
+
+
+    1. find out the collinear variables -- rank 70 of matrix 76,
     2. use other partial data for testing - need to verify validity
     3. pull out the classification plot
     4. look for more features to use instead of just raw feature
     5. break one patien to multiple?
     6. kernalize?
-    
+
     1. 300 too long
     2. 50 better than 100 or 30
     '''
@@ -167,7 +167,7 @@ print(clf.predict(datatest))
         temp = np.array(data_person, dtype = keywords)
         if flag == 0:
         data_raw.append(temp)
-        
+
 
 def mypca(x):
     result = la.eigh(np.dot(x, np.transpose(x)))
@@ -185,16 +185,3 @@ def mypca(x):
 
 
 '''
-
-
-
-
-
-
-
-
-
-
-
-
-
