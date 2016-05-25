@@ -1,4 +1,4 @@
-# First try .6335
+# First try with Logistic Regression .6335
 # With scaling: .6559.
 # With stacking 10 breaths .6676 and 33% test set
 # With stacking 20 breaths .67855 and 25% test set
@@ -16,6 +16,8 @@
 # 20 stacked rows with 10000 training rows and 2500 test rows: .7104
 # 30 stacked rows with 10000 training rows and 2500 test rows: .6984
 # 40 stacked rows with 10000 training rows and 2500 test rows: .6932
+# 50 stacked rows with 10000 training rows and 2500 test rows: .6864
+# 10 stacked rows with 10000 training rows and 2500 test rows: .7008
 # 15 stacked rows with 10000 training rows and 2500 test rows: .704
 # 18 stacked rows with 10000 training rows and 2500 test rows: .6776
 # 22 stacked rows with 10000 training rows and 2500 test rows: .7096
