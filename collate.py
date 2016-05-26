@@ -36,6 +36,7 @@ def process_features(df):
     #del df['PIP']
     #del df['PEEP']
     #del df['inst_RR']
+    del df['plat_pressure']
     df = df.replace([inf, -inf], nan).dropna()
     return df
 
@@ -74,7 +75,10 @@ def collate_from_breath_meta_to_data_frame(cohort, breaths_to_stack):
     rolling = create_rolling_frame(df, breaths_to_stack)
     file_array = [cohort_files[0]] * len(rolling)
     for f in cohort_files[1:]:
-        new = process_features(read_csv(f))
+        try:
+            new = process_features(read_csv(f))
+        except:
+            import pdb; pdb.set_trace()
         if len(new.index) == 0:
             continue
         new = create_rolling_frame(new, breaths_to_stack)
