@@ -39,6 +39,7 @@ from numpy import append, inf, nan
 from pandas import DataFrame
 from sklearn.cross_validation import train_test_split
 from sklearn.grid_search import GridSearchCV
+from sklearn.metrics import precision_score, recall_score
 from sklearn.preprocessing import scale
 from sklearn.svm import SVC
 
@@ -73,6 +74,11 @@ def non_spark(x_train, x_test, y_train, y_test, vents_and_files):
                 print(kernel, c, gamma)
                 print(clf.score(x_test, y_test))
                 predictions = clf.predict(x_test)
+                print("Precision: " + str(precision_score(y_test['y'], predictions)))
+                print("Recall: " + str(recall_score(y_test['y'], predictions)))
+                fpr, tpr, thresh = roc_curve(y_test['y'], predictions)
+                print("False pos rate: " + str(fpr[1]))
+                print("True post rate: " + str(tpr[1]))
                 error = abs(y_test['y'] - predictions)
                 failure_idx = error[error == 2]
                 with open("failure.test", "w") as f:
