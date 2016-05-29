@@ -6,3 +6,4 @@ scipy
 spark-sklearn
 flintrock
 twilio
+py4j

@@ -37,6 +37,7 @@ def process_features(df):
     #del df['PEEP']
     #del df['inst_RR']
     del df['plat_pressure']
+    del df['brunner']
     df = df.replace([inf, -inf], nan).dropna()
     return df
 
@@ -72,6 +73,7 @@ def collate_from_breath_meta_to_list(cohort):
 def collate_from_breath_meta_to_data_frame(cohort, breaths_to_stack):
     cohort_files = get_cohort_files(cohort)
     df = process_features(read_csv(cohort_files[0]))
+    initial_features = list(df.columns.values)
     rolling = create_rolling_frame(df, breaths_to_stack)
     file_array = [cohort_files[0]] * len(rolling)
     for f in cohort_files[1:]:
@@ -83,7 +85,7 @@ def collate_from_breath_meta_to_data_frame(cohort, breaths_to_stack):
         file_array.extend([f] * len(new))
     df = DataFrame(rolling)
     df['filename'] = file_array
-    df = df.rename(columns={180: 'start_vent_bn'})
+    df = df.rename(columns={(len(initial_features) - 1) * breaths_to_stack: 'start_vent_bn'})
     return df
 
 
