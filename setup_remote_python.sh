@@ -1,4 +1,4 @@
-#!/usr/local/Cellar/bash/4.3.42/bin/bash
+#!/bin/bash
 
 main() {
     local ips=$(aws ec2 describe-instances | grep PublicIpAddress | awk '{print $2}' | tr -d \" | tr -d ,)
