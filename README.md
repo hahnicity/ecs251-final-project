@@ -28,17 +28,18 @@ with configuring your user permissions.
 
     flintrock --config flintrock.config.yml launch ecs251
 
-This will set up our spark cluster. After this we need to login to our spark
-cluster to configure it.
+This will set up our spark cluster. After this we need to configure our spark
+cluster
 
-    scp -r ecs251-final-project ec2-user@master.public.ip.address
+    ./setup_remote_python.sh
+    ./remote_transfer.sh <master ip>
+    # Wait until python is setup on all the nodes
     flintrock --config flintrock.config.yml login ecs251
     cd ecs251-final-project
-    ./bootstrap.sh
 
 #Running
 ## Locally
-To run the analysis perform the installation steps then run in python
+To run the analysis perform the installation steps for local installs then run in python
 
     python learn.py
 
@@ -47,5 +48,6 @@ This will run the analysis and output desired information at the end of the run
 ## On Spark cluster
 Log in to the spark master, run bootstrap and then run the learner
 
-    ./bootstrap.sh
-    python learn.py --with-spark
+    ./run_spark.sh
+
+This will run spark in as automated a manner as possible

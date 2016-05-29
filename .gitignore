@@ -2,3 +2,5 @@ venv*
 *.pyc
 *.sw[op]
 __pycache__/
+*.out
+*.test

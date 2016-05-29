@@ -47,7 +47,8 @@ from sklearn.svm import SVC
 from collate import collate_all_from_breath_meta_to_data_frame
 
 CACHE_SIZE = 1024
-
+C = [40, 45, 50, 55, 60]
+GAMMA = [.01, .015, .02, .025, .03]
 
 def preprocess_x_y(df):
     y = df['y']
@@ -66,8 +67,8 @@ def preprocess_x_y(df):
 
 def non_spark(x_train, x_test, y_train, y_test, vents_and_files):
     # TODO perform PCA on whole thing.
-    for c in [40, 45, 50, 55, 60]:
-        for gamma in [.01, .015, .02, .025, .03]:
+    for c in C:
+        for gamma in GAMMA:
             clf = SVC(cache_size=CACHE_SIZE, kernel="rbf", C=c, gamma=gamma)
             clf.fit(x_train, y_train)
             print(c, gamma)
@@ -80,7 +81,7 @@ def non_spark(x_train, x_test, y_train, y_test, vents_and_files):
             print("True post rate: " + str(tpr[1]))
             error = abs(y_test['y'] - predictions)
             failure_idx = error[error == 2]
-            with open("failure.test", "w") as f:
+            with open("failure.c{}.gam{}.test".format(c, gamma), "w") as f:
                 writer = csv.writer(f)
                 for idx in failure_idx.index:
                     pt_data = vents_and_files[idx]
@@ -97,7 +98,7 @@ def with_spark(x_train, x_test, y_train, y_test, vents_and_files, spark_connect_
     conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     conf.set("spark.deploy.mode", "cluster")
     sc = SparkContext(conf=conf)
-    param_grid = {"C": [40, 45, 50, 55], "gamma": [.01, .02, .03, .04, .05]}
+    param_grid = {"C": C, "gamma": GAMMA}
     gs = SparkGridSearchCV(sc, SVC(cache_size=CACHE_SIZE), param_grid=param_grid)
     res = gs.fit(x_train, y_train['y'].values)
     print(res.best_score_)
@@ -112,19 +113,20 @@ def main():
     parser.add_argument("--train-subset", type=int, default=20000)
     parser.add_argument("--test-subset", type=int, default=10000)
     parser.add_argument("--connect-str", default="local", help="The master connect str for spark")
+    parser.add_argument("--folds", default=5, type=int)
     args = parser.parse_args()
     df = collate_all_from_breath_meta_to_data_frame(20)
     x, y, vents_and_files = preprocess_x_y(df)
     print(x.info())
     print(y.info())
 
-    for train_idx, test_idx in KFold(n=len(y['y']), n_folds=5):
+    for train_idx, test_idx in KFold(n=len(y['y']), n_folds=args.folds):
         x_train = x.iloc[train_idx].sample(n=args.train_subset)
         y_train = y.iloc[train_idx].sample(n=args.train_subset)
         x_test = x.iloc[test_idx].sample(n=args.test_subset)
         y_test = y.iloc[test_idx].sample(n=args.test_subset)
         if args.with_spark:
-            with_spark(x_train, x_test, y_train, y_test, vents_and_files, args.conn)
+            with_spark(x_train, x_test, y_train, y_test, vents_and_files, args.connect_str)
         else:
             non_spark(x_train, x_test, y_train, y_test, vents_and_files)
 
