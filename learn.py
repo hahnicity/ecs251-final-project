@@ -84,11 +84,11 @@ def non_spark(x_train, x_test, y_train, y_test, vents_and_files):
             failure_idx = error[error == 2]
             with open("failure.c{}.gam{}.test".format(c, gamma), "w") as f:
                 writer = csv.writer(f)
+                writer.writerow(["file", "ventbn", "real val"])
                 for idx in failure_idx.index:
                     pt_data = vents_and_files[idx]
-                    pt_data = str(pt_data[0]) + " " + str(pt_data[1])
                     actual = y_test.loc[idx].values
-                    writer.writerow(pt_data + str(list(actual)))
+                    writer.writerow(pt_data + list(actual))
 
 
 def with_spark(x_train, x_test, y_train, y_test, vents_and_files, spark_connect_str):
