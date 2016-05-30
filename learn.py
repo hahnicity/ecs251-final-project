@@ -37,10 +37,11 @@ from multiprocessing import cpu_count
 from random import randint
 
 from numpy import append, inf, nan
+from numpy.random import permutation
 from pandas import DataFrame
 from sklearn.cross_validation import KFold, train_test_split
 from sklearn.grid_search import GridSearchCV
-from sklearn.metrics import precision_score, recall_score, roc_curve
+from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_curve
 from sklearn.preprocessing import scale
 from sklearn.svm import SVC
 
@@ -66,14 +67,13 @@ def preprocess_x_y(df):
 
 
 def non_spark(x_train, x_test, y_train, y_test, vents_and_files):
-    # TODO perform PCA on whole thing.
-    for c in C:
-        for gamma in GAMMA:
+    for c in [50]:
+        for gamma in [.02]:
             clf = SVC(cache_size=CACHE_SIZE, kernel="rbf", C=c, gamma=gamma)
-            clf.fit(x_train, y_train)
-            print(c, gamma)
-            print(clf.score(x_test, y_test))
+            clf.fit(x_train, y_train['y'].values)
+            print("Params: ", c, gamma)
             predictions = clf.predict(x_test)
+            print("Accuracy: " + str(accuracy_score(y_test['y'], predictions)))
             print("Precision: " + str(precision_score(y_test['y'], predictions)))
             print("Recall: " + str(recall_score(y_test['y'], predictions)))
             fpr, tpr, thresh = roc_curve(y_test['y'], predictions)
@@ -101,34 +101,42 @@ def with_spark(x_train, x_test, y_train, y_test, vents_and_files, spark_connect_
     param_grid = {"C": C, "gamma": GAMMA}
     gs = SparkGridSearchCV(sc, SVC(cache_size=CACHE_SIZE), param_grid=param_grid)
     res = gs.fit(x_train, y_train['y'].values)
-    print(res.best_score_)
-    print(res.best_params_)
-    print("Perform scoring on test set")
-    print(res.score(x_test, y_test))
+    print("Best Score: ", res.best_score_)
+    print("Best params: ", res.best_params_)
+    predictions = res.predict(x_test)
+    print("Accuracy: " + str(accuracy_score(y_test['y'], predictions)))
+    print("Precision: " + str(precision_score(y_test['y'], predictions)))
+    print("Recall: " + str(recall_score(y_test['y'], predictions)))
+    fpr, tpr, thresh = roc_curve(y_test['y'], predictions)
+    print("False pos rate: " + str(fpr[1]))
+    print("True post rate: " + str(tpr[1]))
 
 
 def main():
     parser = ArgumentParser()
     parser.add_argument("--with-spark", action="store_true", default=False)
-    parser.add_argument("--train-subset", type=int, default=20000)
-    parser.add_argument("--test-subset", type=int, default=10000)
+    parser.add_argument("--samples", type=int, default=None)
+    parser.add_argument("--test-size", type=float, default=0.25)
     parser.add_argument("--connect-str", default="local", help="The master connect str for spark")
-    parser.add_argument("--folds", default=5, type=int)
     args = parser.parse_args()
-    df = collate_all_from_breath_meta_to_data_frame(20)
+    df = collate_all_from_breath_meta_to_data_frame(20, args.samples)
     x, y, vents_and_files = preprocess_x_y(df)
-    print(x.info())
-    print(y.info())
+    if args.samples:
+        x = x.sample(n=args.samples)
+        y = y.loc[x.index]
+    # Reindex to ensure we don't bias the results
+    x = x.reindex(permutation(x.index))
+    y = y.loc[x.index]
+    print("{} positive samples".format(len(y[y['y'] == 1])))
+    print("{} negative samples".format(len(y[y['y'] == -1])))
+    x_train, x_test, y_train, y_test = train_test_split(
+        x, y, test_size=args.test_size, random_state=randint(0, 100)
+    )
 
-    for train_idx, test_idx in KFold(n=len(y['y']), n_folds=args.folds):
-        x_train = x.iloc[train_idx].sample(n=args.train_subset)
-        y_train = y.iloc[train_idx].sample(n=args.train_subset)
-        x_test = x.iloc[test_idx].sample(n=args.test_subset)
-        y_test = y.iloc[test_idx].sample(n=args.test_subset)
-        if args.with_spark:
-            with_spark(x_train, x_test, y_train, y_test, vents_and_files, args.connect_str)
-        else:
-            non_spark(x_train, x_test, y_train, y_test, vents_and_files)
+    if args.with_spark:
+        with_spark(x_train, x_test, y_train, y_test, vents_and_files, args.connect_str)
+    else:
+        non_spark(x_train, x_test, y_train, y_test, vents_and_files)
 
 
 if __name__ == "__main__":

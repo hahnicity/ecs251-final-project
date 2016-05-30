@@ -28,6 +28,7 @@ def process_features(df):
     del df['TVi2']
     del df['TVe2']
     del df['iTime']
+    # start
     #del df['eTime']
     #del df['Maw']
     #del df['I:E ratio']
@@ -36,6 +37,7 @@ def process_features(df):
     #del df['PIP']
     #del df['PEEP']
     #del df['inst_RR']
+    # end
     del df['plat_pressure']
     del df['brunner']
     df = df.replace([inf, -inf], nan).dropna()
@@ -70,13 +72,15 @@ def collate_from_breath_meta_to_list(cohort):
     return data
 
 
-def collate_from_breath_meta_to_data_frame(cohort, breaths_to_stack):
+def collate_from_breath_meta_to_data_frame(cohort, breaths_to_stack, samples):
     cohort_files = get_cohort_files(cohort)
     df = process_features(read_csv(cohort_files[0]))
     initial_features = list(df.columns.values)
     rolling = create_rolling_frame(df, breaths_to_stack)
     file_array = [cohort_files[0]] * len(rolling)
     for f in cohort_files[1:]:
+        if samples and len(rolling) >= samples:
+            break
         new = process_features(read_csv(f))
         if len(new.index) == 0:
             continue
@@ -110,11 +114,11 @@ def create_rolling_frame(df, breaths_in_frame):
     return rolling
 
 
-def collate_all_from_breath_meta_to_data_frame(breaths_to_stack):
-    ards = collate_from_breath_meta_to_data_frame("ardscohort", breaths_to_stack)
+def collate_all_from_breath_meta_to_data_frame(breaths_to_stack, samples):
+    ards = collate_from_breath_meta_to_data_frame("ardscohort", breaths_to_stack, samples)
     y = Series(1, index=ards.index)
     ards['y'] = y
-    control = collate_from_breath_meta_to_data_frame("controlcohort", breaths_to_stack)
+    control = collate_from_breath_meta_to_data_frame("controlcohort", breaths_to_stack, samples)
     y = Series(-1, index=control.index)
     control['y'] = y
     return ards.append(control, ignore_index=True)
