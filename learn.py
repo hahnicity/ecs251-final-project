@@ -31,6 +31,7 @@
 # Use SVM with C=50 .87754
 # Use SVM with C=50 gamma=0.01 .8886
 # Use SVM with C=50 gamma=0.02 .89335
+# Use SVM C=50, gamma=0.02, randomly sampled 10000 items from 20000 items: .9396
 from argparse import ArgumentParser
 import csv
 from multiprocessing import cpu_count
