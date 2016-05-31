@@ -32,6 +32,7 @@
 # Use SVM with C=50 gamma=0.01 .8886
 # Use SVM with C=50 gamma=0.02 .89335
 # Use SVM C=50, gamma=0.02, randomly sampled 10000 items from 20000 items: .9396
+# SVM C=10 gamma=0.02, reindexed, full set of 86000 items: 0.9014
 from argparse import ArgumentParser
 import csv
 from multiprocessing import cpu_count
@@ -49,8 +50,8 @@ from sklearn.svm import SVC
 from collate import collate_all_from_breath_meta_to_data_frame
 
 CACHE_SIZE = 1024
-C = [40, 45, 50, 55, 60]
-GAMMA = [.01, .015, .02, .025, .03]
+C = range(5, 55, 5)
+GAMMA = [.02]
 
 def preprocess_x_y(df):
     y = df['y']
@@ -68,7 +69,7 @@ def preprocess_x_y(df):
 
 
 def non_spark(x_train, x_test, y_train, y_test, vents_and_files):
-    for c in [50]:
+    for c in [12]:
         for gamma in [.02]:
             clf = SVC(cache_size=CACHE_SIZE, kernel="rbf", C=c, gamma=gamma)
             clf.fit(x_train, y_train['y'].values)
@@ -117,7 +118,7 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("--with-spark", action="store_true", default=False)
     parser.add_argument("--samples", type=int, default=None)
-    parser.add_argument("--test-size", type=float, default=0.25)
+    parser.add_argument("--test-size", type=float, default=0.20)
     parser.add_argument("--connect-str", default="local", help="The master connect str for spark")
     args = parser.parse_args()
     df = collate_all_from_breath_meta_to_data_frame(20, args.samples)
