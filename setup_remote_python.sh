@@ -16,9 +16,10 @@ setup_instance() {
     local identity_path=/Users/greg/.ssh/gr-pair-gondolin.pem
     local user="ec2-user"
     local dir="ecs251-final-project"
-    ssh -i $identity_path $user@$ip "mkdir -p $dir"
-    scp -i $identity_path bootstrap.sh requirements.txt $user@$ip:~/$dir/
-    ssh -i $identity_path $user@$ip "cd ~/$dir; ./bootstrap.sh"
+    local options="-o StrictHostKeyChecking=no -o CheckHostIP=no"
+    ssh $options -i $identity_path $user@$ip "mkdir -p $dir"
+    scp $options -i $identity_path bootstrap.sh requirements.txt $user@$ip:~/$dir/
+    ssh $options -i $identity_path $user@$ip "cd ~/$dir; ./bootstrap.sh"
 }
 
 main
