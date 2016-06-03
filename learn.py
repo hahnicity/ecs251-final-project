@@ -35,7 +35,6 @@
 # SVM C=10 gamma=0.02, reindexed, full set of 86000 items: 0.9014
 from argparse import ArgumentParser
 import csv
-from multiprocessing import cpu_count
 from random import randint
 
 from numpy import append, inf, nan

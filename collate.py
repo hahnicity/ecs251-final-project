@@ -37,6 +37,7 @@ def process_features(df):
     #del df['PIP']
     #del df['PEEP']
     #del df['inst_RR']
+    #del df['minF_to_zero']
     # end
     del df['plat_pressure']
     del df['brunner']
