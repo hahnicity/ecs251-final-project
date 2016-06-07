@@ -147,7 +147,8 @@ def main():
     parser.add_argument("--test-size", type=float, default=0.20)
     parser.add_argument("--connect-str", default="local", help="The master connect str for spark")
     args = parser.parse_args()
-    df = collate_all_from_breath_meta_to_data_frame(20, args.samples)
+    breaths_to_stack = 20
+    df = collate_all_from_breath_meta_to_data_frame(breaths_to_stack, args.samples)
     x, y, vents_and_files = preprocess_x_y(df)
     if args.samples:
         x = x.sample(n=args.samples)
@@ -160,7 +161,8 @@ def main():
     x_train, x_test, y_train, y_test = train_test_split(
         x, y, test_size=args.test_size, random_state=randint(0, 100)
     )
-
+    x_train, scaling_factors = perform_initial_scaling(x_train, breaths_to_stack)
+    x_test = perform_subsequent_scaling(x_test, scaling_factors)
     if args.with_spark:
         with_spark(x_train, x_test, y_train, y_test, vents_and_files, args.connect_str)
     else:
