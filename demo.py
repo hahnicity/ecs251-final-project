@@ -14,7 +14,7 @@ response = requests.post(
     "http://ecs251-demo/analyze/",
     json={"patient_id": ards_pt_id, "breath_data": ards_example}
 )
-sleep(10)
+sleep(5)
 print("Now we're going to send data for an control patient")
 i = -1
 control_example = list(cohort.iloc[i].values[0:180])

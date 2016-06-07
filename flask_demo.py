@@ -21,7 +21,7 @@ clf = SVC(cache_size=1024, C=10, gamma=0.02)
 
 def get_data():
     to_stack = 20
-    samples = 5000
+    samples = None
     df = collate_all_from_breath_meta_to_data_frame(to_stack, samples)
     x, y, vents_and_files = preprocess_x_y(df)
     if samples:
