@@ -63,8 +63,35 @@ def preprocess_x_y(df):
     import time; time.sleep(1)
     tmp_zip = zip(list(df.index), filenames, start_vent_bns)
     vents_and_files = {idx: [f, bn] for idx, f, bn in tmp_zip}
-    df = scale(df)
     return DataFrame(df), DataFrame(y), vents_and_files
+
+
+def perform_initial_scaling(df, stacked_breaths):
+    """
+    Since breaths are stacked we look at max and mins across multiple
+    stacked rows
+    """
+    max_mins = {}
+    for col in range(df.shape[1]):
+        modulo_idx = col % stacked_breaths
+        max_mins.setdefault(modulo_idx, {'max': 0, 'min': 0})
+        min = df.iloc[:, col].min()
+        if min < max_mins[modulo_idx]['max']:
+            max_mins[modulo_idx]['min'] = min
+        max = df.iloc[:, col].max()
+        if max > max_mins[modulo_idx]['min']:
+            max_mins[modulo_idx]['max'] = max
+    perform_subsequent_scaling(df, max_mins)
+    return df, max_mins
+
+
+def perform_subsequent_scaling(df, max_mins):
+    for col in range(df.shape[1]):
+        breaths_to_stack = len(max_mins)
+        modulo_idx = col % breaths_to_stack
+        val = max_mins[modulo_idx]
+        df.iloc[:, col] = (df.iloc[:, col] - val['min']) / (val['max'] - val['min'])
+    return df
 
 
 def non_spark(x_train, x_test, y_train, y_test, vents_and_files):

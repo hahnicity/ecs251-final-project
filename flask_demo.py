@@ -3,12 +3,13 @@ from random import randint
 
 from flask import Flask, request
 from numpy.random import permutation
+from pandas import DataFrame
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_curve
 from sklearn.svm import SVC
 
 from collate import collate_all_from_breath_meta_to_data_frame
-from learn import preprocess_x_y
+from learn import preprocess_x_y, perform_initial_scaling, perform_subsequent_scaling
 from sms import send_text
 
 TEST_FRACTION = 0.02
@@ -19,8 +20,13 @@ clf = SVC(cache_size=1024, C=10, gamma=0.02)
 
 
 def get_data():
-    df = collate_all_from_breath_meta_to_data_frame(20, None)
+    to_stack = 20
+    samples = 5000
+    df = collate_all_from_breath_meta_to_data_frame(to_stack, samples)
     x, y, vents_and_files = preprocess_x_y(df)
+    if samples:
+        x = x.sample(n=samples)
+        y = y.loc[x.index]
     # Reindex to ensure we don't bias the results
     x = x.reindex(permutation(x.index))
     y = y.loc[x.index]
@@ -29,7 +35,9 @@ def get_data():
     x_train, x_test, y_train, y_test = train_test_split(
         x, y, test_size=TEST_FRACTION, random_state=randint(0, 100)
     )
-    return x_train, x_test, y_train, y_test
+    x_train, scaling_factors = perform_initial_scaling(x_train, to_stack)
+    x_test = perform_subsequent_scaling(x_test, scaling_factors)
+    return x_train, x_test, y_train, y_test, scaling_factors
 
 
 def train(x_train, x_test, y_train, y_test):
@@ -45,24 +53,18 @@ def train(x_train, x_test, y_train, y_test):
 
 @app.route('/analyze/', methods=["POST"])
 def analyze():
-	data = json.loads(request.data)
-	breath_data = data["breath_data"]
-	patient_id = data["patient_id"]
-	print("Received data: " + request.data)
-    # Theres a bit of a problem here; because the numbers won't come in scaled
-    # to us we may have difficulty actually performing predictions properly.
-    # So inevitably when I do a generalization of this work I will need to figure
-    # out how to get around this problem.
-    #
-    # But until then I will not do anything
-	prediction = clf.predict([breath_data])
-	print("Prediction was: ", prediction)
-	if prediction[0] == 1:
-		send_text("+19083274527", "+15102543918", "Patient {} has ARDS".format(patient_id))
-	return str(prediction[0])
+    data = json.loads(request.data)
+    breath_data = data["breath_data"]
+    patient_id = data["patient_id"]
+    df = perform_subsequent_scaling(DataFrame([breath_data]), scaling_factors)
+    prediction = clf.predict(df)
+    print("Prediction was: ", prediction)
+    if prediction[0] == 1:
+        #send_text("+19083274527", "+15102543918", "Patient {} has ARDS".format(patient_id))
+        pass
+    return str(prediction[0])
 
 
-if __name__ == '__main__':
-	x_train, x_test, y_train, y_test = get_data()
-	train(x_train, x_test, y_train, y_test)
-	app.run(debug=True)
+x_train, x_test, y_train, y_test, scaling_factors = get_data()
+train(x_train, x_test, y_train, y_test)
+app.run(debug=False, port=80, host="0.0.0.0")
