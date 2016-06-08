@@ -14,12 +14,15 @@ response = requests.post(
     "http://ecs251-demo/analyze/",
     json={"patient_id": ards_pt_id, "breath_data": ards_example}
 )
+print("We received the response: {}\n\n".format(response.content))
 sleep(5)
+
 print("Now we're going to send data for an control patient")
 i = -1
 control_example = list(cohort.iloc[i].values[0:180])
 control_pt_id = cohort.iloc[i].values[181].split("/")[1]
-requests.post(
+response = requests.post(
     "http://ecs251-demo/analyze/",
     json={"patient_id": control_pt_id, "breath_data": control_example}
 )
+print("We received the response: {}".format(response.content))
