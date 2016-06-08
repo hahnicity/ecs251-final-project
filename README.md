@@ -51,3 +51,10 @@ Log in to the spark master, run bootstrap and then run the learner
     ./run_spark.sh
 
 This will run spark in as automated a manner as possible
+
+## The Flask Demo
+Log in to the spark master.
+
+    ./run_flask.sh
+
+Now you can perform real time analytics
